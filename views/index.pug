@@ -3,5 +3,6 @@ extends layout
 block content
     h1= title
     p Welcome to #{title}!
-    svg(class="bar-chart" width="400" height="400")
-    script(src='/javascripts/charts.js' type='module')
+    div(class="chart")
+    //svg()
+    script(src='/javascripts/scatterplot.js' type='module')
