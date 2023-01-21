@@ -1,5 +1,5 @@
 import * as d3 from "https://cdn.skypack.dev/d3@7";
-import * as Plot from "https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/+esm";
+import crossfilter2 from 'https://cdn.skypack.dev/crossfilter2';
 
 /*
     this.a = elements.a; // Semi-major axis
@@ -10,24 +10,25 @@ import * as Plot from "https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/+esm"
     this.m = elements.m; // Mean anomoly at epoch
  */
 
+let plot = {};
+const colors = ["black", "green", "teal", "purple", "yellow", "pink", "red", "blue", "gray", "orange", "darkgreen"]
+
+//https://stackoverflow.com/questions/34653293/render-only-svg-nodes-of-data-that-is-currently-visible
+//https://eng.wealthfront.com/2012/09/05/explore-your-multivariate-data-with-crossfilter/
 //https://codepen.io/alandunning/pen/KpKjBW
 //https://github.com/sgratzl/d3tutorial
 d3.json("/json/asteroids_20210418_grouped_ordered.json")
     .then((data) => {
         console.log(data.length);
-        //console.log(data);
-
-        // let grouped = d3.group(data, d => d.orbital.a)
-
-        //console.log(grouped)
-
-        //groups.attr("transform", (d, i) => `translate(${i * 2 + 1},0)`);
-
         console.log(data[1]);
+
+        let cf = crossfilter2(data);
+        let bySemiMajorAxis = cf.dimension(d => d.a || 0);
+        bySemiMajorAxis.filter([3.8, 4]);
 
         //let p = rectPlotCount(data);
         //let p = binPlotCount(data);
-        let p = scatterPlot(data, {
+        plot = scatterPlot(bySemiMajorAxis, {
             //x: d => d.r / 1000,
             x: d => d.groupOrder,
             y: d => d.a,
@@ -35,24 +36,27 @@ d3.json("/json/asteroids_20210418_grouped_ordered.json")
             strokeWidth: 1,
             width: 1400,
             height: 20000,
-            xDomain: [0,310],
-            yDomain: [0,3.92],
+            xDomain: [0, 310],
+            yDomain: [0, 3.92],
             xLabel: "Count",
             yLabel: "Semi-major Axis (AU)"
-           // xType: d3.scaleLog
+            // xType: d3.scaleLog
         });
-        //let p = dodgePlot(data);
-        console.log(p);
 
-
-        document.body.append(p);
-
+        $("#slider").change(function (ev) {
+            let val = $(this).val();
+            console.log("change! " + val);
+            bySemiMajorAxis.filter([3.8 - val, 4 - val]);
+            console.log(bySemiMajorAxis.top(Infinity));
+            let XYI = plot.computeValues();
+            plot.refresh(XYI[0], XYI[1], XYI[2], XYI[3]);
+        });
     })
     .catch((error) => {
         console.error("Error loading the data", error);
     });
 
-function scatterPlot(data, {
+function scatterPlot(cf, {
     x = ([x]) => x, // given d in data, returns the (quantitative) x-value
     y = ([, y]) => y, // given d in data, returns the (quantitative) y-value
     r = 3, // (fixed) radius of dots, in pixels
@@ -85,14 +89,19 @@ function scatterPlot(data, {
     haloWidth = 3 // padding around the labels
 } = {}) {
     // Compute values.
-    const X = d3.map(data, x);
-    const Y = d3.map(data, y);
-    const T = title == null ? null : d3.map(data, title);
-    const I = d3.range(X.length).filter(i => !isNaN(X[i]) && !isNaN(Y[i]));
+    function computeValues() {
+        let data = cf.top(Infinity);
+        let X = d3.map(data, x);
+        let Y = d3.map(data, y);
+        let I = d3.range(X.length).filter(i => !isNaN(X[i]) && !isNaN(Y[i]));
+        return [X, Y, I, data];
+    }
+
+    let XYI = computeValues();
 
     // Compute default domains.
-    if (xDomain === undefined) xDomain = d3.extent(X);
-    if (yDomain === undefined) yDomain = d3.extent(Y);
+    if (xDomain === undefined) xDomain = d3.extent(XYI[0]);
+    if (yDomain === undefined) yDomain = d3.extent(XYI[1]);
 
     // Construct scales and axes.
     const xScale = xType(xDomain, xRange);
@@ -134,36 +143,39 @@ function scatterPlot(data, {
             .attr("text-anchor", "start")
             .text(yLabel));
 
-    if (T) svg.append("g")
-        .attr("font-family", "sans-serif")
-        .attr("font-size", 10)
-        .attr("stroke-linejoin", "round")
-        .attr("stroke-linecap", "round")
-        .selectAll("text")
-        .data(I)
-        .join("text")
-        .attr("dx", 7)
-        .attr("dy", "0.35em")
-        .attr("x", i => xScale(X[i]))
-        .attr("y", i => yScale(Y[i]))
-        .text(i => T[i])
-        .call(text => text.clone(true))
-        .attr("fill", "none")
-        .attr("stroke", halo)
-        .attr("stroke-width", haloWidth);
+    let circleG = svg.append("g");
 
-    let colors = ["black","green","teal","purple","yellow","pink","red","blue","gray","orange","darkgreen"]
+    function refresh(x, y, i, data) {
+        let circle = circleG.selectAll("circle").data(i);
 
-    svg.append("g")
-        .selectAll("circle")
-        .data(I)
-        .join("circle")
-        .attr("fill", i => colors[data[i].spectralType])
-        .attr("stroke", i => colors[data[i].spectralType])
-        .attr("stroke-width", strokeWidth)
-        .attr("cx", i => xScale(X[i]))
-        .attr("cy", i => yScale(Y[i]))
-        .attr("r", r);
+        circle.exit().remove();
 
-    return svg.node();
+        circle.enter()
+            .append("circle")
+            .attr("fill", i => colors[data[i].spectralType])
+            .attr("stroke", i => colors[data[i].spectralType])
+            .attr("stroke-width", strokeWidth)
+            .attr("cx", i => xScale(x[i]))
+            .attr("cy", i => yScale(y[i]))
+            .attr("r", r)
+            .on('mouseover', function (d, i) {
+                d3.select(this).transition()
+                    .duration('100')
+                    .attr("r", 7);
+            })
+            .on('mouseout', function (d, i) {
+                d3.select(this).transition()
+                    .duration('200')
+                    .attr("r", r);
+            });
+    }
+
+    refresh(XYI[0], XYI[1], XYI[2], XYI[3]);
+
+    document.body.append(svg.node());
+
+    return {
+        refresh: refresh,
+        computeValues: computeValues
+    };
 }
