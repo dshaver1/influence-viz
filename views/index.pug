@@ -3,7 +3,10 @@ extends layout
 block content
     h1= title
     p Welcome to #{title}!
-    input(id="slider" type="range" style="width:100%" min="0" value="0" max="4")
-    div(class="chart")
+    //input(id="slider" type="range" style="width:100%" min="0" value="0" max="4")
+    div
+        div(class="container" id="slider")
+        div(class="container" id="chart1")
     //svg()
+    div(class="eventhandler" style="display:none")
     script(src='/javascripts/scatterplot.js' type='module')

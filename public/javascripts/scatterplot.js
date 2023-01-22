@@ -10,21 +10,36 @@ import crossfilter2 from 'https://cdn.skypack.dev/crossfilter2';
     this.m = elements.m; // Mean anomoly at epoch
  */
 
-let plot = {};
 const colors = ["black", "green", "teal", "purple", "yellow", "pink", "red", "blue", "gray", "orange", "darkgreen"]
+const layout = ({
+    width: 200,
+    height: 800,
+    margin: {
+        top: 40,
+        bottom: 40,
+        left: 40,
+        right: 40
+    }
+});
+let plot = {};
+let xDomain = [0, 310];
+let yDomain = {};
+let xScale = {};
+let yScale = {};
+let xAxis = {};
+let yAxis = {};
 
-//https://stackoverflow.com/questions/34653293/render-only-svg-nodes-of-data-that-is-currently-visible
-//https://eng.wealthfront.com/2012/09/05/explore-your-multivariate-data-with-crossfilter/
-//https://codepen.io/alandunning/pen/KpKjBW
-//https://github.com/sgratzl/d3tutorial
 d3.json("/json/asteroids_20210418_grouped_ordered.json")
     .then((data) => {
         console.log(data.length);
         console.log(data[1]);
 
+        let s = slider(0, 4, 3.9, 4);
+
         let cf = crossfilter2(data);
         let bySemiMajorAxis = cf.dimension(d => d.a || 0);
-        bySemiMajorAxis.filter([3.8, 4]);
+        console.log("s.getRange(): " + s.getRange());
+        bySemiMajorAxis.filter(s.getRange());
 
         //let p = rectPlotCount(data);
         //let p = binPlotCount(data);
@@ -34,23 +49,33 @@ d3.json("/json/asteroids_20210418_grouped_ordered.json")
             y: d => d.a,
             r: 2,
             strokeWidth: 1,
-            width: 1400,
-            height: 20000,
-            xDomain: [0, 310],
-            yDomain: [0, 3.92],
+            width: 1200,
+            height: 800,
             xLabel: "Count",
             yLabel: "Semi-major Axis (AU)"
             // xType: d3.scaleLog
         });
 
-        $("#slider").change(function (ev) {
-            let val = $(this).val();
-            console.log("change! " + val);
-            bySemiMajorAxis.filter([3.8 - val, 4 - val]);
-            console.log(bySemiMajorAxis.top(Infinity));
+        /*        $("#slider").change(function (ev) {
+                    let val = $(this).val();
+                    console.log("change! " + val);
+                    bySemiMajorAxis.filter([3.8 - val, 4 - val]);
+                    console.log(bySemiMajorAxis.top(Infinity));
+                    let XYI = plot.computeValues();
+                    plot.refresh(XYI[0], XYI[1], XYI[2], XYI[3]);
+                });*/
+
+        d3.select('.eventhandler').on('a-change', function () {
+            let updatedValues = s.getRange();
+            console.log("change!");
+            console.log(updatedValues);
+
+            bySemiMajorAxis.filter(updatedValues);
+            //console.log(bySemiMajorAxis.top(Infinity));
             let XYI = plot.computeValues();
+            yDomain = updatedValues;
             plot.refresh(XYI[0], XYI[1], XYI[2], XYI[3]);
-        });
+        })
     })
     .catch((error) => {
         console.error("Error loading the data", error);
@@ -73,10 +98,8 @@ function scatterPlot(cf, {
     width = 640, // outer width, in pixels
     height = 400, // outer height, in pixels
     xType = d3.scaleLinear, // type of x-scale
-    xDomain, // [xmin, xmax]
     xRange = [marginLeft + insetLeft, width - marginRight - insetRight], // [left, right]
     yType = d3.scaleLinear, // type of y-scale
-    yDomain, // [ymin, ymax]
     yRange = [height - marginBottom - insetBottom, marginTop + insetTop], // [bottom, top]
     xLabel, // a label for the x-axis
     yLabel, // a label for the y-axis
@@ -100,14 +123,16 @@ function scatterPlot(cf, {
     let XYI = computeValues();
 
     // Compute default domains.
-    if (xDomain === undefined) xDomain = d3.extent(XYI[0]);
-    if (yDomain === undefined) yDomain = d3.extent(XYI[1]);
+    yDomain = [3.7, 4];
+
+    console.log(yDomain);
+    console.log(yRange);
 
     // Construct scales and axes.
-    const xScale = xType(xDomain, xRange);
-    const yScale = yType(yDomain, yRange);
-    const xAxis = d3.axisBottom(xScale).ticks(width / 80, xFormat);
-    const yAxis = d3.axisLeft(yScale).ticks(height / 50, yFormat);
+    xScale = xType(xDomain, xRange);
+    yScale = yType(yDomain, yRange);
+    xAxis = d3.axisBottom(xScale).ticks(width / 80, xFormat);
+    yAxis = d3.axisLeft(yScale).ticks(height / 50, yFormat);
 
     const svg = d3.create("svg")
         .attr("width", width)
@@ -131,6 +156,7 @@ function scatterPlot(cf, {
 
     svg.append("g")
         .attr("transform", `translate(${marginLeft},0)`)
+        .attr("class", "yaxis")
         .call(yAxis)
         .call(g => g.select(".domain").remove())
         .call(g => g.selectAll(".tick line").clone()
@@ -146,17 +172,28 @@ function scatterPlot(cf, {
     let circleG = svg.append("g");
 
     function refresh(x, y, i, data) {
-        let circle = circleG.selectAll("circle").data(i);
+        console.log(yRange);
+        yScale.domain(yDomain)
+        svg.selectAll("g.yaxis")
+            .transition().duration(1000)
+            .call(yAxis);
 
-        circle.exit().remove();
+        console.log(data);
 
-        circle.enter()
-            .append("circle")
-            .attr("fill", i => colors[data[i].spectralType])
-            .attr("stroke", i => colors[data[i].spectralType])
-            .attr("stroke-width", strokeWidth)
-            .attr("cx", i => xScale(x[i]))
-            .attr("cy", i => yScale(y[i]))
+        let circle = circleG.selectAll("circle").data(data, function (d) {
+            return d ? d.name : this.id;
+        })
+            .join(
+                enter => enter.append("circle")
+                    .attr("cx", d => xScale(d.groupOrder))
+                    .attr("cy", d => yScale(d.a)),
+                update => update.transition().duration(1000)
+                    .attr("cx", d => xScale(d.groupOrder))
+                    .attr("cy", d => yScale(d.a))
+            )
+            .attr("fill", d => d.spectralType)
+            .attr("stroke", d => d.spectralType)
+            //.attr("stroke-width", strokeWidth)
             .attr("r", r)
             .on('mouseover', function (d, i) {
                 d3.select(this).transition()
@@ -172,10 +209,114 @@ function scatterPlot(cf, {
 
     refresh(XYI[0], XYI[1], XYI[2], XYI[3]);
 
-    document.body.append(svg.node());
+    $("#chart1").append(svg.node());
 
     return {
         refresh: refresh,
         computeValues: computeValues
     };
+}
+
+function slider(min, max, starting_min = min, starting_max = max) {
+
+    var range = [max, min]
+    var starting_range = [starting_max, starting_min]
+
+    // set width and height of svg
+    var w = layout.width
+    var h = layout.height
+    var margin = layout.margin
+
+    // dimensions of slider bar
+    var width = w - margin.left - margin.right;
+    var height = h - margin.top - margin.bottom;
+
+    // create x scale
+    var y = d3.scaleLinear()
+        .domain(range)  // data space
+        .range([0, height]);  // display space
+
+    // create svg and translated g
+    var svg = d3.create("svg")
+        .attr("width", w)
+        .attr("height", h)
+    const g = svg.append('g').attr('transform', `translate(${margin.left}, ${margin.top})`)
+
+    // labels
+    var labelL = g.append('text')
+        .attr('id', 'labelleft')
+        .attr('x', width)
+        .attr('y', 0)
+
+    var labelR = g.append('text')
+        .attr('id', 'labelright')
+        .attr('x', width)
+        .attr('y', 0)
+
+    // define brush
+    var brush = d3.brushY()
+        .extent([[0, 0], [width, height]])
+        .on('brush', function (event) {
+            var s = event.selection;
+            //console.log("brush event!");
+            //console.log(s);
+            // update and move labels
+            labelL.attr('y', s[0])
+                .text((y.invert(s[0]).toFixed(2)))
+            labelR.attr('y', s[1])
+                .text((y.invert(s[1]).toFixed(2)))
+            // update view
+            // if the view should only be updated after brushing is over,
+            // move these two lines into the on('end') part below
+            svg.node().value = s.map(function (d) {
+                var temp = y.invert(d);
+                return +temp.toFixed(2)
+            });
+        })
+        .on("end", e => {
+            let eventHandler = d3.select('.eventhandler');
+            eventHandler.dispatch("a-change");
+        })
+
+    // append brush to g
+    var gBrush = g.append("g")
+        .attr("class", "brush")
+        .call(brush)
+
+    // override default behaviour - clicking outside of the selected area
+    // will select a small piece there rather than deselecting everything
+    // https://bl.ocks.org/mbostock/6498000
+    gBrush.selectAll(".overlay")
+        .each(function (d) {
+            d.type = "selection";
+        })
+        .on("mousedown touchstart", e => brushcentered(gBrush, e))
+
+    function brushcentered(parent, e) {
+        //console.log(e);
+        //console.log(parent);
+        var dy = y(0.3) - y(0.4), // Use a fixed width when recentering.
+            cy = e.offsetY - 40,
+            y0 = cy - dy / 2,
+            y1 = cy + dy / 2;
+
+        //console.log("dy: " + dy + ", cy: " + cy + ", y0: " + y0 + ", y1: " + y1 + ", height: " + height);
+        d3.select(parent.node()).call(brush.move, y1 > height ? [height - dy, height] : y0 < 0 ? [0, dy] : [y0, y1]);
+    }
+
+    // select entire range
+    console.log(brush);
+    console.log(starting_range);
+    console.log(y);
+    console.log(starting_range.map(y));
+    gBrush.call(brush.move, starting_range.map(y))
+
+    $("#slider").append(svg.node());
+
+    let getRange = function () {
+        let range = d3.brushSelection(gBrush.node()).map(d => y.invert(d).toFixed(2));
+        return [range[1], range[0]];
+    }
+
+    return {getRange: getRange}
 }
