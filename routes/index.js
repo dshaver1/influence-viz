@@ -4,7 +4,7 @@ var fs = require('fs');
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
-    res.render('index', {title: 'Influence asteroid graphs'});
+    res.render('index', {title: 'Yet Another Asteroid Visualization'});
 });
 
 module.exports = router;

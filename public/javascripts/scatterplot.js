@@ -26,8 +26,10 @@ let xDomain = [0, 310];
 let yDomain = {};
 let xScale = {};
 let yScale = {};
+let y2Scale = {};
 let xAxis = {};
 let yAxis = {};
+let y2Axis = {};
 
 d3.json("/json/asteroids_20210418_grouped_ordered.json")
     .then((data) => {
@@ -41,8 +43,6 @@ d3.json("/json/asteroids_20210418_grouped_ordered.json")
         console.log("s.getRange(): " + s.getRange());
         bySemiMajorAxis.filter(s.getRange());
 
-        //let p = rectPlotCount(data);
-        //let p = binPlotCount(data);
         plot = scatterPlot(bySemiMajorAxis, {
             //x: d => d.r / 1000,
             x: d => d.groupOrder,
@@ -53,17 +53,7 @@ d3.json("/json/asteroids_20210418_grouped_ordered.json")
             height: 800,
             xLabel: "Count",
             yLabel: "Semi-major Axis (AU)"
-            // xType: d3.scaleLog
         });
-
-        /*        $("#slider").change(function (ev) {
-                    let val = $(this).val();
-                    console.log("change! " + val);
-                    bySemiMajorAxis.filter([3.8 - val, 4 - val]);
-                    console.log(bySemiMajorAxis.top(Infinity));
-                    let XYI = plot.computeValues();
-                    plot.refresh(XYI[0], XYI[1], XYI[2], XYI[3]);
-                });*/
 
         d3.select('.eventhandler').on('a-change', function () {
             let updatedValues = s.getRange();
@@ -72,9 +62,9 @@ d3.json("/json/asteroids_20210418_grouped_ordered.json")
 
             bySemiMajorAxis.filter(updatedValues);
             //console.log(bySemiMajorAxis.top(Infinity));
-            let XYI = plot.computeValues();
+            let data = plot.computeValues();
             yDomain = updatedValues;
-            plot.refresh(XYI[0], XYI[1], XYI[2], XYI[3]);
+            plot.refresh(data);
         })
     })
     .catch((error) => {
@@ -82,12 +72,9 @@ d3.json("/json/asteroids_20210418_grouped_ordered.json")
     });
 
 function scatterPlot(cf, {
-    x = ([x]) => x, // given d in data, returns the (quantitative) x-value
-    y = ([, y]) => y, // given d in data, returns the (quantitative) y-value
     r = 3, // (fixed) radius of dots, in pixels
-    title, // given d in data, returns the title
     marginTop = 20, // top margin, in pixels
-    marginRight = 30, // right margin, in pixels
+    marginRight = 40, // right margin, in pixels
     marginBottom = 30, // bottom margin, in pixels
     marginLeft = 40, // left margin, in pixels
     inset = r * 2, // inset the default range, in pixels
@@ -104,23 +91,14 @@ function scatterPlot(cf, {
     xLabel, // a label for the x-axis
     yLabel, // a label for the y-axis
     xFormat, // a format specifier string for the x-axis
-    yFormat, // a format specifier string for the y-axis
-    fill = "none", // fill color for dots
-    stroke = "currentColor", // stroke color for the dots
-    strokeWidth = 1.5, // stroke width for dots
-    halo = "#fff", // color of label halo
-    haloWidth = 3 // padding around the labels
+    yFormat // a format specifier string for the y-axis
 } = {}) {
     // Compute values.
     function computeValues() {
-        let data = cf.top(Infinity);
-        let X = d3.map(data, x);
-        let Y = d3.map(data, y);
-        let I = d3.range(X.length).filter(i => !isNaN(X[i]) && !isNaN(Y[i]));
-        return [X, Y, I, data];
+        return cf.top(Infinity);
     }
 
-    let XYI = computeValues();
+    let values = computeValues();
 
     // Compute default domains.
     yDomain = [3.7, 4];
@@ -131,8 +109,13 @@ function scatterPlot(cf, {
     // Construct scales and axes.
     xScale = xType(xDomain, xRange);
     yScale = yType(yDomain, yRange);
+    let y2Extent = getOrbitalPeriodExtent(yDomain);
+    console.log("y2Extent");
+    console.log(y2Extent);
+    y2Scale = yType(y2Extent, yRange);
     xAxis = d3.axisBottom(xScale).ticks(width / 80, xFormat);
     yAxis = d3.axisLeft(yScale).ticks(height / 50, yFormat);
+    y2Axis = d3.axisRight(y2Scale).ticks(height / 50, yFormat);
 
     const svg = d3.create("svg")
         .attr("width", width)
@@ -148,7 +131,7 @@ function scatterPlot(cf, {
             .attr("y2", marginTop + marginBottom - height)
             .attr("stroke-opacity", 0.1))
         .call(g => g.append("text")
-            .attr("x", width)
+            .attr("x", width-marginRight)
             .attr("y", marginBottom - 4)
             .attr("fill", "currentColor")
             .attr("text-anchor", "end")
@@ -169,27 +152,47 @@ function scatterPlot(cf, {
             .attr("text-anchor", "start")
             .text(yLabel));
 
+    svg.append("g")
+        .attr("transform", `translate(${width-marginRight},0)`)
+        .attr("class", "y2axis")
+        .call(y2Axis)
+        .call(g => g.select(".domain").remove())
+        .call(g => g.append("text")
+            .attr("x", -60)
+            .attr("y", 10)
+            .attr("fill", "currentColor")
+            .attr("text-anchor", "start")
+            .text("Orbital Period (Days)"));
+
     let circleG = svg.append("g");
 
-    function refresh(x, y, i, data) {
-        console.log(yRange);
+    function refresh(values) {
         yScale.domain(yDomain)
         svg.selectAll("g.yaxis")
             .transition().duration(1000)
             .call(yAxis);
 
-        console.log(data);
+        y2Scale.domain(getOrbitalPeriodExtent(yDomain))
+        svg.selectAll("g.y2axis")
+            .transition().duration(1000)
+            .call(y2Axis);
 
-        let circle = circleG.selectAll("circle").data(data, function (d) {
+        console.log(values);
+
+        let circle = circleG.selectAll("circle").data(values, function (d) {
             return d ? d.name : this.id;
         })
             .join(
-                enter => enter.append("circle")
+                enter => enter.append("circle").transition().duration(1000)
                     .attr("cx", d => xScale(d.groupOrder))
                     .attr("cy", d => yScale(d.a)),
                 update => update.transition().duration(1000)
                     .attr("cx", d => xScale(d.groupOrder))
+                    .attr("cy", d => yScale(d.a)),
+                exit => exit.transition().duration(1000)
+                    .attr("cx", d => xScale(d.groupOrder))
                     .attr("cy", d => yScale(d.a))
+                    .remove()
             )
             .attr("fill", d => d.spectralType)
             .attr("stroke", d => d.spectralType)
@@ -207,7 +210,7 @@ function scatterPlot(cf, {
             });
     }
 
-    refresh(XYI[0], XYI[1], XYI[2], XYI[3]);
+    refresh(values);
 
     $("#chart1").append(svg.node());
 
@@ -319,4 +322,13 @@ function slider(min, max, starting_min = min, starting_max = max) {
     }
 
     return {getRange: getRange}
+}
+
+function getOrbitalPeriodExtent(sliderRange) {
+    return [getOrbitalPeriod(sliderRange[0]), getOrbitalPeriod(sliderRange[1])];
+}
+
+function getOrbitalPeriod(a) {
+    const thirdLaw = 0.000007495;
+    return Math.sqrt(Math.pow(a, 3) / thirdLaw);
 }
