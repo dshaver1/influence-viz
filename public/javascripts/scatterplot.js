@@ -10,7 +10,7 @@ import crossfilter2 from 'https://cdn.skypack.dev/crossfilter2';
     this.m = elements.m; // Mean anomoly at epoch
  */
 
-const colors = ["black", "green", "teal", "purple", "yellow", "pink", "red", "blue", "gray", "orange", "darkgreen"]
+const colors = ["white", "green", "teal", "purple", "yellow", "pink", "red", "blue", "gray", "orange", "steelblue"]
 const layout = ({
     width: 200,
     height: 800,
@@ -18,7 +18,7 @@ const layout = ({
         top: 40,
         bottom: 40,
         left: 40,
-        right: 40
+        right: 20
     }
 });
 let plot = {};
@@ -30,18 +30,21 @@ let y2Scale = {};
 let xAxis = {};
 let yAxis = {};
 let y2Axis = {};
+let cf = {};
 
 d3.json("/json/asteroids_20210418_grouped_ordered.json")
     .then((data) => {
         console.log(data.length);
         console.log(data[1]);
 
-        let s = slider(0, 4, 3.9, 4);
+        let histogramBinsBySpectralType = generateBinsBySpectralType(data);
 
-        let cf = crossfilter2(data);
+        cf = crossfilter2(data);
         let bySemiMajorAxis = cf.dimension(d => d.a || 0);
-        console.log("s.getRange(): " + s.getRange());
+        //let bySpectralType = cf.dimension(d => d.spectralType);
+        let s = slider(histogramBinsBySpectralType, 0, 4, 0.96, 1.06);
         bySemiMajorAxis.filter(s.getRange());
+
 
         plot = scatterPlot(bySemiMajorAxis, {
             //x: d => d.r / 1000,
@@ -57,8 +60,6 @@ d3.json("/json/asteroids_20210418_grouped_ordered.json")
 
         d3.select('.eventhandler').on('a-change', function () {
             let updatedValues = s.getRange();
-            console.log("change!");
-            console.log(updatedValues);
 
             bySemiMajorAxis.filter(updatedValues);
             //console.log(bySemiMajorAxis.top(Infinity));
@@ -98,23 +99,17 @@ function scatterPlot(cf, {
         return cf.top(Infinity);
     }
 
-    let values = computeValues();
-
     // Compute default domains.
-    yDomain = [3.7, 4];
-
-    console.log(yDomain);
-    console.log(yRange);
+    yDomain = [0.96, 1.06];
 
     // Construct scales and axes.
     xScale = xType(xDomain, xRange);
     yScale = yType(yDomain, yRange);
     let y2Extent = getOrbitalPeriodExtent(yDomain);
-    console.log("y2Extent");
-    console.log(y2Extent);
     y2Scale = yType(y2Extent, yRange);
     xAxis = d3.axisBottom(xScale).ticks(width / 80, xFormat);
-    yAxis = d3.axisLeft(yScale).ticks(height / 50, yFormat);
+    yAxis = d3.axisLeft(yScale).ticks(height / 50, yFormat)
+        .tickSize(-(width - marginRight - marginLeft));
     y2Axis = d3.axisRight(y2Scale).ticks(height / 50, yFormat);
 
     const svg = d3.create("svg")
@@ -131,7 +126,7 @@ function scatterPlot(cf, {
             .attr("y2", marginTop + marginBottom - height)
             .attr("stroke-opacity", 0.1))
         .call(g => g.append("text")
-            .attr("x", width-marginRight)
+            .attr("x", width - marginRight)
             .attr("y", marginBottom - 4)
             .attr("fill", "currentColor")
             .attr("text-anchor", "end")
@@ -142,8 +137,7 @@ function scatterPlot(cf, {
         .attr("class", "yaxis")
         .call(yAxis)
         .call(g => g.select(".domain").remove())
-        .call(g => g.selectAll(".tick line").clone()
-            .attr("x2", width - marginLeft - marginRight)
+        .call(g => g.selectAll(".tick line")
             .attr("stroke-opacity", 0.1))
         .call(g => g.append("text")
             .attr("x", -marginLeft)
@@ -153,7 +147,7 @@ function scatterPlot(cf, {
             .text(yLabel));
 
     svg.append("g")
-        .attr("transform", `translate(${width-marginRight},0)`)
+        .attr("transform", `translate(${width - marginRight},0)`)
         .attr("class", "y2axis")
         .call(y2Axis)
         .call(g => g.select(".domain").remove())
@@ -170,14 +164,14 @@ function scatterPlot(cf, {
         yScale.domain(yDomain)
         svg.selectAll("g.yaxis")
             .transition().duration(1000)
-            .call(yAxis);
+            .call(yAxis)
+            .call(g => g.selectAll(".tick line")
+                .attr("stroke-opacity", 0.1));
 
         y2Scale.domain(getOrbitalPeriodExtent(yDomain))
         svg.selectAll("g.y2axis")
             .transition().duration(1000)
             .call(y2Axis);
-
-        console.log(values);
 
         let circle = circleG.selectAll("circle").data(values, function (d) {
             return d ? d.name : this.id;
@@ -194,8 +188,8 @@ function scatterPlot(cf, {
                     .attr("cy", d => yScale(d.a))
                     .remove()
             )
-            .attr("fill", d => d.spectralType)
-            .attr("stroke", d => d.spectralType)
+            .attr("fill", d => "var(--color-gray-light)")
+            //.attr("stroke", d => d.spectralType)
             //.attr("stroke-width", strokeWidth)
             .attr("r", r)
             .on('mouseover', function (d, i) {
@@ -210,7 +204,7 @@ function scatterPlot(cf, {
             });
     }
 
-    refresh(values);
+    refresh(computeValues());
 
     $("#chart1").append(svg.node());
 
@@ -220,7 +214,7 @@ function scatterPlot(cf, {
     };
 }
 
-function slider(min, max, starting_min = min, starting_max = max) {
+function slider(histograms, min, max, starting_min = min, starting_max = max) {
 
     var range = [max, min]
     var starting_range = [starting_max, starting_min]
@@ -239,22 +233,48 @@ function slider(min, max, starting_min = min, starting_max = max) {
         .domain(range)  // data space
         .range([0, height]);  // display space
 
+    let x = d3.scaleLinear()
+        .domain([0, 9000])  // data space
+        .range([0, width]);  // display space
+
     // create svg and translated g
     var svg = d3.create("svg")
         .attr("width", w)
         .attr("height", h)
     const g = svg.append('g').attr('transform', `translate(${margin.left}, ${margin.top})`)
+        .attr("font-size", "10");
+
+    let line = d3.line()
+        .curve(d3.curveBasis)
+        .x(d => x(Math.min(10000, d[1])))
+        .y(d => y(d[0]));
+
+    for (let i = 0; i < 11; i++) {
+        g.append("path")
+            .datum(histograms.map(hist => {
+                return [hist[0], hist[1][i]];
+            }))
+            .attr("fill", "none")
+            .attr("stroke", colors[i])
+            .attr("stroke-width", 1)
+            .attr("stroke-linejoin", "round")
+            .attr("d", line);
+    }
 
     // labels
-    var labelL = g.append('text')
-        .attr('id', 'labelleft')
-        .attr('x', width)
-        .attr('y', 0)
+    let labelL = g.append('text')
+        //.attr('id', 'labelleft')
+        .attr('x', -38)
+        .attr('y', 5)
+        .attr('dy', "0.32em")
+        .attr("fill", "currentColor")
 
-    var labelR = g.append('text')
-        .attr('id', 'labelright')
-        .attr('x', width)
-        .attr('y', 0)
+    let labelR = g.append('text')
+        //.attr('id', 'labelright')
+        .attr('x', -38)
+        .attr('y', 5)
+        .attr('dy', "0.32em")
+        .attr("fill", "currentColor")
 
     // define brush
     var brush = d3.brushY()
@@ -265,9 +285,9 @@ function slider(min, max, starting_min = min, starting_max = max) {
             //console.log(s);
             // update and move labels
             labelL.attr('y', s[0])
-                .text((y.invert(s[0]).toFixed(2)))
+                .text((y.invert(s[0]).toFixed(2)) + " AU")
             labelR.attr('y', s[1])
-                .text((y.invert(s[1]).toFixed(2)))
+                .text((y.invert(s[1]).toFixed(2)) + " AU")
             // update view
             // if the view should only be updated after brushing is over,
             // move these two lines into the on('end') part below
@@ -307,6 +327,29 @@ function slider(min, max, starting_min = min, starting_max = max) {
         d3.select(parent.node()).call(brush.move, y1 > height ? [height - dy, height] : y0 < 0 ? [0, dy] : [y0, y1]);
     }
 
+    // Slider bounding box
+    svg.append('line')
+        .style("stroke", "var(--color-gray-light)")
+        .style("stroke-width", 2)
+        .attr("x1", margin.left - 1)
+        .attr("y1", margin.top - 1)
+        .attr("x2", w - margin.right + 1)
+        .attr("y2", margin.bottom - 1)
+    svg.append('line')
+        .style("stroke", "var(--color-gray-light)")
+        .style("stroke-width", 2)
+        .attr("x1", margin.left - 1)
+        .attr("y1", h - margin.bottom + 1)
+        .attr("x2", w - margin.right + 1)
+        .attr("y2", h - margin.bottom + 1)
+    svg.append('line')
+        .style("stroke", "var(--color-gray-light)")
+        .style("stroke-width", 2)
+        .attr("x1", margin.left)
+        .attr("y1", margin.top - 1)
+        .attr("x2", margin.left)
+        .attr("y2", h - margin.bottom + 1)
+
     // select entire range
     console.log(brush);
     console.log(starting_range);
@@ -331,4 +374,26 @@ function getOrbitalPeriodExtent(sliderRange) {
 function getOrbitalPeriod(a) {
     const thirdLaw = 0.000007495;
     return Math.sqrt(Math.pow(a, 3) / thirdLaw);
+}
+
+function generateBinsBySpectralType(data) {
+    let bins = d3.scaleLinear().domain([4, 0]).ticks(80);
+    let histograms = bins.map(bin => {
+        return [bin, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+    });
+
+    data.forEach(d => {
+        let binIndex = 0;
+        for (let i = 0; i < 80; i++) {
+            if (bins[i] < d.a) {
+                binIndex = i;
+                break;
+            }
+        }
+
+        histograms[binIndex][1][d.spectralType] = histograms[binIndex][1][d.spectralType] + 1;
+        histograms[binIndex][1][11] = histograms[binIndex][1][11] + 1;
+    });
+
+    return histograms;
 }
