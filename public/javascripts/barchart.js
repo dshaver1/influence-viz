@@ -50,7 +50,7 @@ function binPlotSumR(data) {
     }, {
         x: "r",
         y: {value: "p"},
-        fill: "spectralType"
+        fill: "t"
     })).plot({
         x: {
             domain: [0, 3000000]
@@ -71,7 +71,7 @@ function binPlotCount(d) {
     }, {
         y: "a",
         interval: 0.001,
-        fill: "spectralType"
+        fill: "t"
     })).plot({
         x: {
             domain: [0, 800]

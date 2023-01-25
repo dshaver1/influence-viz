@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var fs = require('fs');
+var D3Node = require('d3-node');
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
@@ -57,12 +58,12 @@ function write2() {
         records.forEach(d => {
             let newD = {};
             newD.i = d.i;
-            newD.name = d.name;
+            newD.n = d.name;
             newD.r = d.r;
-            newD.spectralType = d.spectralType;
+            newD.t = d.spectralType;
             newD.a = d.orbital.a;
             newD.e = d.orbital.e;
-            newD.p = getPeriod(d.orbital.a, 0.000007495);
+            newD.p = getPeriod(d.orbital.a, 0.000007495).toFixed(2);
 
             //if (newD.p >= 600 && newD.p <= 605) {
                 newRecords.push(newD);
@@ -71,7 +72,7 @@ function write2() {
         });
 
         // compare semi-major axis. if equal, compare spectral type. if still equal, compare radius.
-        newRecords.sort((d1, d2) => d1.a !== d2.a ? d1.a - d2.a : d1.spectralType !== d2.spectralType ? d1.spectralType - d2.spectralType : d2.r - d1.r)
+        newRecords.sort((d1, d2) => d1.a !== d2.a ? d1.a - d2.a : d1.t !== d2.t ? d1.t - d2.t : d2.r - d1.r)
 
         let i = 0;
         let last = newRecords[0];
@@ -80,18 +81,31 @@ function write2() {
                 i = 0;
             }
 
-            d.groupOrder = i++;
+            d.o = i++;
             last = d;
         })
 
-        const jsonString = JSON.stringify(newRecords)
-        fs.writeFile('./public/json/asteroids_20210418_grouped_ordered.json', jsonString, err => {
+        const d3n = new D3Node();
+
+        let nested = d3n.d3.nest().key(d => d.a).entries(newRecords);
+
+        nested.map(entry => {
+           entry.c = entry.values.length;
+        });
+
+        //console.log(nested);
+
+
+        const jsonString = JSON.stringify(nested)
+        fs.writeFile('./public/json/asteroids_20210418_nested_count.json', jsonString, err => {
             if (err) {
                 console.log('Error writing file', err)
             } else {
                 console.log('Successfully wrote file')
             }
         })
+
+
     });
 }
 

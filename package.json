@@ -3,19 +3,20 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "npx pm2-dev ./bin/www",
-    "start": "npx pm2 start ./bin/www"
+    "dev": "npx pm2-dev bin/www",
+    "start": "npx pm2 start bin/www"
   },
   "dependencies": {
+    "axios": "1.2.3",
     "cookie-parser": "~1.4.4",
+    "crossfilter2": "^1.5.4",
     "d3": "7.8.2",
+    "d3-node": "^3.0.0",
     "debug": "~2.6.9",
     "express": "~4.16.1",
     "http-errors": "~1.6.3",
     "morgan": "~1.9.1",
-    "pug": "2.0.0-beta11",
-    "axios": "1.2.3",
-    "crossfilter2": "^1.5.4"
+    "pug": "2.0.0-beta11"
   },
   "devDependencies": {
     "pm2": "^5.2.2"
