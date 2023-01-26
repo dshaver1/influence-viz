@@ -1,7 +1,11 @@
 import * as d3 from "https://cdn.skypack.dev/d3@7";
 import crossfilter2 from 'https://cdn.skypack.dev/crossfilter2';
 import {slider} from './slider.mjs'
-import {getOrbitalPeriodExtent, generateBinsBySpectralType} from './data_utils.mjs'
+import {
+    getOrbitalPeriodExtent,
+    generateBinsBySpectralType,
+    fillAllGaps
+} from './data_utils.mjs'
 
 
 const colors = ["white", "green", "teal", "purple", "yellow", "pink", "red", "blue", "gray", "orange", "steelblue"]
@@ -46,6 +50,8 @@ d3.json("/json/asteroids_20210418_nested_count.json")
     .then((data) => {
         console.log(data.length);
         console.log(data[1]);
+
+        fillAllGaps(data);
 
         let histogramBinsByt = generateBinsBySpectralType(data);
 
