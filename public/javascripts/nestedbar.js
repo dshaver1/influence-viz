@@ -70,7 +70,7 @@ d3.json("/json/asteroids_20210418_nested_count.json")
             strokeWidth: 1,
             width: 1200,
             height: 800,
-            xLabel: "Count",
+            xLabel: "Asteroid Count",
             yLabel: "Semi-major Axis (AU)"
         });
 
@@ -250,7 +250,7 @@ function barPlot(cf, {
                 .style("opacity", 0);
         }).on('mousemove', function(event, d) {
             tooltip
-                .html("Semi-major axis: " + d.key + " AU<br />Orbital period: " + d.values[0].p + " days<br />Asteroid count: " + d.c)
+                .html("Semi-major Axis: " + d.key + " AU<br />Orbital Period: " + d.values[0].p + " days<br />Asteroid Count: " + d.c)
                 .style("left", event.pageX + 5 + "px")
                 .style("top", event.pageY + "px")
         });
