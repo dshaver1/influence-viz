@@ -49,14 +49,14 @@ export function slider(histograms, min, max, layout, colors, starting_min = min,
     let labelL = g.append('text')
         //.attr('id', 'labelleft')
         .attr('x', -38)
-        .attr('y', 5)
+        .attr('y', -20)
         .attr('dy', "0.32em")
         .attr("fill", "currentColor")
 
     let labelR = g.append('text')
         //.attr('id', 'labelright')
         .attr('x', -38)
-        .attr('y', 5)
+        .attr('y', 20)
         .attr('dy', "0.32em")
         .attr("fill", "currentColor")
 
@@ -68,9 +68,9 @@ export function slider(histograms, min, max, layout, colors, starting_min = min,
             //console.log("brush event!");
             //console.log(s);
             // update and move labels
-            labelL.attr('y', s[0])
+            labelL.attr('y', s[0] - 5)
                 .text((y.invert(s[0]).toFixed(2)) + " AU")
-            labelR.attr('y', s[1])
+            labelR.attr('y', s[1] + 5)
                 .text((y.invert(s[1]).toFixed(2)) + " AU")
             // update view
             // if the view should only be updated after brushing is over,
