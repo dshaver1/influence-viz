@@ -48,6 +48,7 @@ export function slider(histograms, min, max, layout, colors, starting_min = min,
     // labels
     let labelL = g.append('text')
         //.attr('id', 'labelleft')
+        .attr('class', "tick")
         .attr('x', -38)
         .attr('y', -20)
         .attr('dy', "0.32em")
@@ -55,6 +56,7 @@ export function slider(histograms, min, max, layout, colors, starting_min = min,
 
     let labelR = g.append('text')
         //.attr('id', 'labelright')
+        .attr('class', "tick")
         .attr('x', -38)
         .attr('y', 20)
         .attr('dy', "0.32em")

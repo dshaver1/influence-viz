@@ -12,6 +12,16 @@ g.tick.line {
   stroke:var(--color-gray-dark);
 }
 
+.tick {
+  font-family: sans-serif;
+  font-size: 10px;
+}
+
+.axis-label {
+  font-family: Jura, sans-serif;
+  font-size: 13px;
+}
+
 .container {
   float: left;
 
