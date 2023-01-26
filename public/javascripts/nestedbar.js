@@ -31,6 +31,11 @@ let xAxis = {};
 let yAxis = {};
 let y2Axis = {};
 let cf = {};
+let tooltip = d3.select("#chart1")
+    .append("div")
+    .attr("class", "notification")
+    .attr("style", "position: absolute")
+    .style("opacity", 0)
 
 /**
  *
@@ -129,7 +134,7 @@ function barPlot(cf, {
     let offset = yScale.step() * yScale.padding();
     console.log("offset: " + offset);
 
-    let y3Range = [yRange[0] - offset,yRange[1] + offset];
+    let y3Range = [yRange[0] - offset, yRange[1] + offset];
     console.log("yRange: " + yRange);
     console.log("y3Range: " + y3Range);
 
@@ -187,7 +192,7 @@ function barPlot(cf, {
             .attr("text-anchor", "start")
             .text("Orbital Period (Days)"));
 
-    let barG = svg.append("g").attr("fill", "var(--color-gray-light)");
+    let barG = svg.append("g").attr("fill", "var(--color-gray-light)").attr("cursor", "var(--cursor-url-active) 5 5, auto");
 
     function refresh(values) {
         yScale.domain(yDomain);
@@ -200,7 +205,7 @@ function barPlot(cf, {
         let y3offset = yScale.step() * yScale.padding();
         console.log("y3offset: " + y3offset);
 
-        let y3Range = [yRange[0] - y3offset,yRange[1] + y3offset];
+        let y3Range = [yRange[0] - y3offset, yRange[1] + y3offset];
 
         y3Scale.domain(y2Domain).range(y3Range);
         svg.selectAll("g.yaxis")
@@ -226,21 +231,26 @@ function barPlot(cf, {
                 .transition().duration(200)
                 .attr("width", 0)
                 .remove()
-        )
-            //.attr("fill", d => "var(--color-gray-light)")
-            //.attr("stroke", d => d.t)
-            //.attr("stroke-width", strokeWidth)
-            //.attr("r", r)
-            .on('mouseover', function (d, i) {
-                d3.select(this).transition()
-                    .duration('100')
-                    .attr("color", "white");
-            })
-            .on('mouseout', function (d, i) {
-                d3.select(this).transition()
-                    .duration('200')
-                    .attr("color", "black");
-            });
+        ).on('mouseover', function (event, d) {
+            d3.select(this).transition()
+                .duration('100')
+                .attr("fill", "var(--color-highlight)");
+            tooltip.transition()
+                .duration('100')
+                .style("opacity", 1);
+        }).on('mouseout', function (event, d) {
+            d3.select(this).transition()
+                .duration('400')
+                .attr("fill", "var(--color-gray-light)");
+            tooltip
+                .transition()
+                .style("opacity", 0);
+        }).on('mousemove', function(event, d) {
+            tooltip
+                .html("Semi-major axis: " + d.key + " AU<br />Orbital period: " + d.values[0].p + " days<br />Asteroid count: " + d.c)
+                .style("left", event.pageX + 5 + "px")
+                .style("top", event.pageY + "px")
+        });
     }
 
     refresh(values);

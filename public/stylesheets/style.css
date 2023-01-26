@@ -18,9 +18,25 @@ g.tick.line {
   /*background-color: var(--color-black-faded-50);*/
 }
 
-* {
+/** {
   color: var(--color-gray-light);
   font-family: sans-serif;
+}*/
+
+.header {
+  width: 100%;
+  background-color: var(--color-black-faded-50);
+  border-left: 5px solid var(--color-highlight);
+  padding: 10px 20px 10px 30px;
+  position: relative;
+}
+
+.box {
+  width: 100%;
+  background-color: var(--color-black-faded-50);
+  box-shadow: 1px 3px 4px rgba(0, 0, 0, 0.2);
+  padding: 20px 30px 20px 40px;
+  float: left;
 }
 
 
@@ -58,23 +74,4 @@ h2 {
   height: 40px;
   line-height: 40px;
   margin: 0;
-}
-
-/* Scroll bar */
-
-::-webkit-scrollbar {
-  height: 7px;
-  width: 7px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
 }
