@@ -57,6 +57,7 @@ g.tick.line {
 
 #table1-wrapper {
   position: fixed;
+  display: block;
 }
 
 .selected-bar {

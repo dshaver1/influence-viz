@@ -277,32 +277,21 @@ function barPlot(cf, {
                 .style("left", event.pageX + 5 + "px")
                 .style("top", event.pageY + "px")
         }).on('click', function (event, d) {
-            console.log("click event!");
-            console.log(d);
+            // Using this variable to save which bar has been clicked, which is relevant in the mouseout.
             selectedBar = this;
+
+            // Reset the previously clicked bar to the normal color.
             d3.selectAll(".selected-bar").attr("class", "bar");
+
+            // Set the clicked bar to be blue
             d3.select(this).attr("class", "selected-bar");
 
+            // When the page initially loads, this wrapper is set to display:none, so we need to make sure to enable it
+            // when clicked.
             d3.select("#table1-wrapper").attr("style", "display:block")
 
-            d3.select("#table1-header")
-                    .html("<h3>Constellation " + parseFloat(d.values[0].p).toFixed(1) + "</h3>")
-
-            d3.select(".list-expanding-items").selectAll("li").data(d.values)
-                .join(enter => {
-                    let li = enter.append("li");
-                    li.append("div")
-                        .attr("class", "item-title")
-                        .html(d => d.n + " - " + getSize(d.r) + " " + SPECTRAL_TYPES[d.t].name + "-type");
-                    li.append("div")
-                        .attr("class", "item-expand")
-                        .html(d => "<br/>e: " + d.e + ",r: " + d.r + ",i: " + d.i);
-                }, update => {
-                    update.select(".item-title")
-                        .html(d => d.n + " - " + getSize(d.r) + " " + SPECTRAL_TYPES[d.t].name + "-type");
-                    update.select(".item-expand")
-                        .html(d => "<br/>e: " + d.e + ",r: " + d.r + ",i: " + d.i);
-                })
+            updateAsteroidDetailsHeader(d);
+            updateAsteroidDetailsTable(d);
         });
     }
 
@@ -314,4 +303,30 @@ function barPlot(cf, {
         refresh: refresh,
         computeValues: computeValues
     };
+}
+
+function updateAsteroidDetailsHeader(clickedBar) {
+    d3.select("#table1-header")
+        .html("<h3>Constellation " + parseFloat(clickedBar.values[0].p).toFixed(1) + "</h3>")
+}
+
+function updateAsteroidDetailsTable(clickedBar) {
+    let title = d => d.n + " - " + getSize(d.r) + " " + SPECTRAL_TYPES[d.t].name + "-type";
+    let expand = d => "<br/>e: " + d.e + ",r: " + d.r + ",i: " + d.i;
+
+    d3.select(".list-expanding-items").selectAll("li").data(clickedBar.values)
+        .join(enter => {
+            let li = enter.append("li");
+            li.append("div")
+                .attr("class", "item-title")
+                .html(title);
+            li.append("div")
+                .attr("class", "item-expand")
+                .html(expand);
+        }, update => {
+            update.select(".item-title")
+                .html(title);
+            update.select(".item-expand")
+                .html(expand);
+        })
 }
