@@ -280,7 +280,7 @@ function barPlot(cf, {
             console.log("click event!");
             console.log(d);
             selectedBar = this;
-            d3.select(".selected-bar").attr("class", "bar");
+            d3.selectAll(".selected-bar").attr("class", "bar");
             d3.select(this).attr("class", "selected-bar");
 
             d3.select("#table1-wrapper").attr("style", "display:block")
