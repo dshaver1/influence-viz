@@ -2,7 +2,7 @@
 
 Exploring interesting ways to visualize Influence asteroids.
 
-Temporarily deployed here: https://ruby-verdant-velociraptor.glitch.me/
+Temporarily deployed here: [https://ruby-verdant-velociraptor.glitch.me/](https://ruby-verdant-velociraptor.glitch.me/)
 
 ---
 ## TODO
