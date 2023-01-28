@@ -9,6 +9,7 @@ Temporarily deployed here: [https://ruby-verdant-velociraptor.glitch.me/](https:
 
 - [ ] Add labels for spectral type distribution
 - [ ] Highlight y axes on mouseover
+- [ ] URL encode all changes to graph state so you can share links
 - [ ] Add drill down to show properly scaled dots for each asteroid in constellation. Should be a button on the right hand side.
 - [ ] Add harmonics visual indicator
 - [ ] Add scaled planet indicator. Maybe on the right side of the main graph?
