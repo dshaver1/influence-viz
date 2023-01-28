@@ -9,6 +9,26 @@ import {
 
 
 const colors = ["white", "green", "teal", "purple", "yellow", "pink", "red", "blue", "gray", "orange", "steelblue"]
+const SPECTRAL_TYPES = {
+    0: { name: 'C', resources: [1, 6, 7, 8, 9, 10, 11] },
+    1: { name: 'Cm', resources: [1, 6, 7, 8, 9, 10, 11, 18, 19, 20, 21, 22] },
+    2: { name: 'Ci', resources: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] },
+    3: { name: 'Cs', resources: [1, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17] },
+    4: { name: 'Cms', resources: [1, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22] },
+    5: { name: 'Cis', resources: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17] },
+    6: { name: 'S', resources: [12, 13, 14, 15, 16, 17] },
+    7: { name: 'Sm', resources: [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22] },
+    8: { name: 'Si', resources: [1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15, 16, 17] },
+    9: { name: 'M', resources: [18, 19, 20, 21, 22] },
+    10: { name: 'I', resources: [1, 2, 3, 4, 5, 6, 7, 8] }
+};
+const getSize = (radius) => {
+    if (radius <= 5000) return SIZES[0];
+    if (radius <= 20000) return SIZES[1];
+    if (radius <= 50000) return SIZES[2];
+    return SIZES[3];
+};
+const SIZES = ['Small', 'Medium', 'Large', 'Huge'];
 const layout = ({
     width: 200,
     height: 800,
@@ -35,7 +55,8 @@ let tooltip = d3.select("#chart1")
     .append("div")
     .attr("class", "notification")
     .attr("style", "position: absolute")
-    .style("opacity", 0)
+    .style("opacity", 0);
+let selectedBar = {};
 
 /**
  *
@@ -70,7 +91,7 @@ d3.json("/json/asteroids_20210418_nested_count.json")
             strokeWidth: 1,
             width: 1200,
             height: 800,
-            xLabel: "Asteroid Count",
+            xLabel: "Asteroid Count ⇁",
             yLabel: "Semi-major Axis (AU)"
         });
 
@@ -161,7 +182,7 @@ function barPlot(cf, {
             .attr("stroke-opacity", 0.1))
         .call(g => g.append("text")
             .attr("class", "axis-label")
-            .attr("x", marginLeft + 50)
+            .attr("x", marginLeft + 100)
             .attr("y", marginBottom - 3)
             .attr("fill", "currentColor")
             .attr("text-anchor", "end")
@@ -219,6 +240,7 @@ function barPlot(cf, {
 
         let bar = barG.selectAll("rect").data(values).join(
             enter => enter.append("rect")
+                .attr("class", "bar")
                 .attr("x", xScale(0))
                 .attr("y", d => yScale(d.key))
                 .transition().duration(1000)
@@ -237,22 +259,50 @@ function barPlot(cf, {
         ).on('mouseover', function (event, d) {
             d3.select(this).transition()
                 .duration('100')
-                .attr("fill", "var(--color-highlight)");
+                .attr("class", "selected-bar");
             tooltip.transition()
                 .duration('100')
                 .style("opacity", 1);
         }).on('mouseout', function (event, d) {
+            let clazz = this === selectedBar ? "selected-bar" : "bar";
             d3.select(this).transition()
                 .duration('400')
-                .attr("fill", "var(--color-gray-light)");
+                .attr("class", clazz);
             tooltip
                 .transition()
                 .style("opacity", 0);
-        }).on('mousemove', function(event, d) {
+        }).on('mousemove', function (event, d) {
             tooltip
                 .html("Semi-major Axis: " + d.key + " AU<br />Orbital Period: " + d.values[0].p + " days<br />Asteroid Count: " + d.c)
                 .style("left", event.pageX + 5 + "px")
                 .style("top", event.pageY + "px")
+        }).on('click', function (event, d) {
+            console.log("click event!");
+            console.log(d);
+            selectedBar = this;
+            d3.select(".selected-bar").attr("class", "bar");
+            d3.select(this).attr("class", "selected-bar");
+
+            d3.select("#table1-wrapper").attr("style", "display:block")
+
+            d3.select("#table1-header")
+                    .html("<h3>Constellation " + parseFloat(d.values[0].p).toFixed(1) + "</h3>")
+
+            d3.select(".list-expanding-items").selectAll("li").data(d.values)
+                .join(enter => {
+                    let li = enter.append("li");
+                    li.append("div")
+                        .attr("class", "item-title")
+                        .html(d => d.n + " - " + getSize(d.r) + " " + SPECTRAL_TYPES[d.t].name + "-type");
+                    li.append("div")
+                        .attr("class", "item-expand")
+                        .html(d => "<br/>e: " + d.e + ",r: " + d.r + ",i: " + d.i);
+                }, update => {
+                    update.select(".item-title")
+                        .html(d => d.n + " - " + getSize(d.r) + " " + SPECTRAL_TYPES[d.t].name + "-type");
+                    update.select(".item-expand")
+                        .html(d => "<br/>e: " + d.e + ",r: " + d.r + ",i: " + d.i);
+                })
         });
     }
 

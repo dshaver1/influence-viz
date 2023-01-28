@@ -43,12 +43,29 @@ g.tick.line {
 
 .box {
   width: 100%;
+  height: 850px;
   background-color: var(--color-black-faded-50);
   box-shadow: 1px 3px 4px rgba(0, 0, 0, 0.2);
   padding: 20px 30px 20px 40px;
   float: left;
+  display: block;
 }
 
+#table1 {
+  display: block;
+}
+
+#table1-wrapper {
+  position: fixed;
+}
+
+.selected-bar {
+  fill: var(--color-highlight)
+}
+
+.bar {
+  fill: var(--color-gray-light)
+}
 
 :root {
   --color-highlight-red: 54; --color-highlight-green: 167; --color-highlight-blue: 205;
