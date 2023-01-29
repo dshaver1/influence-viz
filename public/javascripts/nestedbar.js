@@ -10,17 +10,17 @@ import {
 
 const colors = ["white", "green", "teal", "purple", "yellow", "pink", "red", "blue", "gray", "orange", "steelblue"]
 const SPECTRAL_TYPES = {
-    0: { name: 'C', resources: [1, 6, 7, 8, 9, 10, 11] },
-    1: { name: 'Cm', resources: [1, 6, 7, 8, 9, 10, 11, 18, 19, 20, 21, 22] },
-    2: { name: 'Ci', resources: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] },
-    3: { name: 'Cs', resources: [1, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17] },
-    4: { name: 'Cms', resources: [1, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22] },
-    5: { name: 'Cis', resources: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17] },
-    6: { name: 'S', resources: [12, 13, 14, 15, 16, 17] },
-    7: { name: 'Sm', resources: [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22] },
-    8: { name: 'Si', resources: [1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15, 16, 17] },
-    9: { name: 'M', resources: [18, 19, 20, 21, 22] },
-    10: { name: 'I', resources: [1, 2, 3, 4, 5, 6, 7, 8] }
+    0: {name: 'C', resources: [1, 6, 7, 8, 9, 10, 11]},
+    1: {name: 'Cm', resources: [1, 6, 7, 8, 9, 10, 11, 18, 19, 20, 21, 22]},
+    2: {name: 'Ci', resources: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]},
+    3: {name: 'Cs', resources: [1, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]},
+    4: {name: 'Cms', resources: [1, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]},
+    5: {name: 'Cis', resources: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]},
+    6: {name: 'S', resources: [12, 13, 14, 15, 16, 17]},
+    7: {name: 'Sm', resources: [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]},
+    8: {name: 'Si', resources: [1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15, 16, 17]},
+    9: {name: 'M', resources: [18, 19, 20, 21, 22]},
+    10: {name: 'I', resources: [1, 2, 3, 4, 5, 6, 7, 8]}
 };
 const getSize = (radius) => {
     if (radius <= 5000) return SIZES[0];
@@ -57,6 +57,7 @@ let tooltip = d3.select("#chart1")
     .attr("style", "position: absolute")
     .style("opacity", 0);
 let selectedBar = {};
+let selectedBarA = "";
 
 /**
  *
@@ -219,6 +220,11 @@ function barPlot(cf, {
     let barG = svg.append("g").attr("fill", "var(--color-gray-light)").attr("cursor", "var(--cursor-url-active) 5 5, auto");
 
     function refresh(values) {
+        // Since we're moving the bars, clear the selected bar
+        console.log(selectedBar);
+        d3.selectAll(".selected-bar")
+            .attr("class", "bar");
+
         yScale.domain(yDomain);
 
         y2Scale.domain(getOrbitalPeriodExtent(y2Domain))
@@ -279,6 +285,7 @@ function barPlot(cf, {
         }).on('click', function (event, d) {
             // Using this variable to save which bar has been clicked, which is relevant in the mouseout.
             selectedBar = this;
+            selectedBarA = d.key;
 
             // Reset the previously clicked bar to the normal color.
             d3.selectAll(".selected-bar").attr("class", "bar");
@@ -293,8 +300,14 @@ function barPlot(cf, {
             updateAsteroidDetailsHeader(d);
             updateAsteroidDetailsTable(d);
         });
+
+        // Why is this not selecting the bar where the new p would be? Bar is still stuck in the mud where you originall clicked
+        d3.selectAll(".bar")
+            .filter(d => d.c > 0 && d.key === selectedBarA)
+            .attr("class", "selected-bar");
     }
 
+    // Do the initial refresh
     refresh(values);
 
     $("#chart1").append(svg.node());
