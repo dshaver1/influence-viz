@@ -8,7 +8,7 @@ Temporarily deployed here: [https://ruby-verdant-velociraptor.glitch.me/](https:
 ## TODO
 
 - [ ] Add labels for spectral type distribution
-- [ ] Highlight y axes on mouseover
+- [x] Highlight y axes on mouseover
 - [ ] URL encode all changes to graph state so you can share links
 - [ ] Add drill down to show properly scaled dots for each asteroid in constellation. Should be a button on the right hand side.
 - [ ] Add harmonics visual indicator
@@ -19,8 +19,3 @@ Temporarily deployed here: [https://ruby-verdant-velociraptor.glitch.me/](https:
 - [ ] Add KM^2 to asteroid list
 - [ ] Add close button for constellation
 - [ ] Add filters for size, eccentricity, spectral type, name
-
-## Bugs
-
-- [ ] Highlighted bar doesn't move when you scroll
-- [ ] If you hover over a bar, then move your mouse right and down to where the popup is, you'll be unable to get a new popup until you move away from where the previous popup was.

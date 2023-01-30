@@ -1,5 +1,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Jura:wght@300;400;700');
 
+:root {
+  --color-highlight-red: 54; --color-highlight-green: 167; --color-highlight-blue: 205;
+  --color-highlight: rgb(var(--color-highlight-red), var(--color-highlight-green), var(--color-highlight-blue));
+  --color-highlight-faded-10: rgba(var(--color-highlight-red), var(--color-highlight-green), var(--color-highlight-blue), 0.10);
+  --color-highlight-faded-25: rgba(var(--color-highlight-red), var(--color-highlight-green), var(--color-highlight-blue), 0.25);
+  /* IMPORTANT: any change of this highlight color should also be applied in background-images */
+  --color-warning: rgb(223, 67, 0);
+  --color-gray-light: rgb(204, 204, 204);
+  --color-gray-medium: rgb(153, 153, 153);
+  --color-gray-dark: rgb(49, 49, 49);
+  --color-black-faded-50: rgba(0, 0, 0, 0.5);
+}
+
+
 text {
   color: var(--color-gray-light);
 }
@@ -13,8 +27,8 @@ g.tick.line {
 }
 
 .tick {
-  font-family: sans-serif;
-  font-size: 10px;
+  font-family: Jura, sans-serif;
+  font-size: 11px;
 }
 
 .axis-label {
@@ -24,14 +38,7 @@ g.tick.line {
 
 .container {
   float: left;
-
-  /*background-color: var(--color-black-faded-50);*/
 }
-
-/** {
-  color: var(--color-gray-light);
-  font-family: sans-serif;
-}*/
 
 .header {
   width: 100%;
@@ -65,22 +72,20 @@ g.tick.line {
 }
 
 .bar {
-  fill: var(--color-gray-light)
+  fill: var(--color-gray-light);
 }
 
-:root {
-  --color-highlight-red: 54; --color-highlight-green: 167; --color-highlight-blue: 205;
-  --color-highlight: rgb(var(--color-highlight-red), var(--color-highlight-green), var(--color-highlight-blue));
-  --color-highlight-faded-10: rgba(var(--color-highlight-red), var(--color-highlight-green), var(--color-highlight-blue), 0.10);
-  --color-highlight-faded-25: rgba(var(--color-highlight-red), var(--color-highlight-green), var(--color-highlight-blue), 0.25);
-  /* IMPORTANT: any change of this highlight color should also be applied in background-images */
-  --color-warning: rgb(223, 67, 0);
-  --color-gray-light: rgb(204, 204, 204);
-  --color-gray-medium: rgb(153, 153, 153);
-  --color-gray-dark: rgb(49, 49, 49);
-  --color-black-faded-50: rgba(0, 0, 0, 0.5);
+.vertical-line, .horizontal-line {
+  stroke: var(--color-highlight);
+  stroke-width: 1;
+  opacity: 0.5;
 }
 
+.axis-highlight {
+  fill: #fff;
+  font-family: Jura, sans-serif;
+  font-size: 11px;
+}
 html, body {
   background-color: #202030;
   color: var(--color-gray-light);

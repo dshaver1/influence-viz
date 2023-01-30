@@ -53,6 +53,7 @@ let y2Axis = {};
 let cf = {};
 let tooltip = d3.select("#chart1")
     .append("div")
+    .attr("id", "tooltip")
     .attr("class", "notification")
     .attr("style", "position: absolute")
     .style("opacity", 0);
@@ -131,7 +132,7 @@ function barPlot(cf, {
     xLabel, // a label for the x-axis
     yLabel, // a label for the y-axis
     xFormat, // a format specifier string for the x-axis
-    yFormat = "~r" // a format specifier string for the y-axis
+    yFormat = ".3f" // a format specifier string for the y-axis
 } = {}) {
     // Compute values.
     function computeValues() {
@@ -146,7 +147,9 @@ function barPlot(cf, {
 
     // Construct scales and axes.
     xScale = xType(xDomain, xRange);
-    yScale = yType(yDomain, yRange).padding(0.4);
+    yScale = yType(yDomain, yRange);
+
+    yScale.padding(0.4);
 
     let y2Extent = getOrbitalPeriodExtent(yDomain);
     y2Scale = d3.scaleLinear()
@@ -166,7 +169,7 @@ function barPlot(cf, {
     xAxis = d3.axisBottom(xScale).ticks(width / 80, xFormat);
     yAxis = d3.axisLeft(y3Scale).ticks(height / 50, yFormat)
         .tickSize(-(width - marginRight - marginLeft));
-    y2Axis = d3.axisRight(y2Scale).ticks(height / 50, yFormat);
+    y2Axis = d3.axisRight(y2Scale).ticks(height / 50, "~r");
 
     const svg = d3.create("svg")
         .attr("width", width)
@@ -217,12 +220,36 @@ function barPlot(cf, {
             .attr("text-anchor", "start")
             .text("Orbital Period (Days)"));
 
+    createMouseTrackers(svg, {
+        marginLeft: marginLeft,
+        marginRight: marginLeft,
+        marginTop: marginTop,
+        marginBottom: marginBottom,
+        width: width,
+        height: height
+    });
+
+    svg.append("g")
+        .append("rect")
+        .style("fill", "none")
+        .style("pointer-events", "all")
+        .attr("class", "eventrect")
+        .attr("x", marginLeft)
+        .attr("y", marginTop)
+        .attr("width", width - marginLeft - marginRight)
+        .attr("height", height - marginTop - marginBottom)
+        .on("mousemove", trackMouse)
+        .on("mouseout", function (event, d) {
+            d3.select(".mouse").style("display", "none")
+        });
+
     let barG = svg.append("g").attr("fill", "var(--color-gray-light)").attr("cursor", "var(--cursor-url-active) 5 5, auto");
 
     function refresh(values) {
         // Since we're moving the bars, clear the selected bar
         console.log(selectedBar);
         d3.selectAll(".selected-bar")
+            .attr("opacity", "0.7")
             .attr("class", "bar");
 
         yScale.domain(yDomain);
@@ -247,6 +274,7 @@ function barPlot(cf, {
         let bar = barG.selectAll("rect").data(values).join(
             enter => enter.append("rect")
                 .attr("class", "bar")
+                .attr("opacity", "0.7")
                 .attr("x", xScale(0))
                 .attr("y", d => yScale(d.key))
                 .transition().duration(1000)
@@ -265,19 +293,20 @@ function barPlot(cf, {
         ).on('mouseover', function (event, d) {
             d3.select(this).transition()
                 .duration('100')
-                .attr("class", "selected-bar");
-            tooltip.transition()
-                .duration('100')
-                .style("opacity", 1);
+                .attr("opacity", "1");
+            tooltip.style("opacity", 1);
         }).on('mouseout', function (event, d) {
-            let clazz = this === selectedBar ? "selected-bar" : "bar";
+            let opacity = this === selectedBar ? "1" : "0.7";
             d3.select(this).transition()
-                .duration('400')
-                .attr("class", clazz);
-            tooltip
-                .transition()
-                .style("opacity", 0);
+                .duration('600')
+                .attr("opacity", opacity);
+            d3.select("#tooltip")
+                .style("opacity", 0)
+                //.attr("display", "none")
+                .style("left", "0px")
+                .style("top", "0px")
         }).on('mousemove', function (event, d) {
+            trackMouse(event, d)
             tooltip
                 .html("Semi-major Axis: " + d.key + " AU<br />Orbital Period: " + d.values[0].p + " days<br />Asteroid Count: " + d.c)
                 .style("left", event.pageX + 5 + "px")
@@ -288,10 +317,14 @@ function barPlot(cf, {
             selectedBarA = d.key;
 
             // Reset the previously clicked bar to the normal color.
-            d3.selectAll(".selected-bar").attr("class", "bar");
+            d3.selectAll(".selected-bar")
+                .attr("opacity", "0.7")
+                .attr("class", "bar");
 
             // Set the clicked bar to be blue
-            d3.select(this).attr("class", "selected-bar");
+            d3.select(this)
+                .attr("opacity", "1")
+                .attr("class", "selected-bar");
 
             // When the page initially loads, this wrapper is set to display:none, so we need to make sure to enable it
             // when clicked.
@@ -342,4 +375,67 @@ function updateAsteroidDetailsTable(clickedBar) {
             update.select(".item-expand")
                 .html(expand);
         })
+}
+
+function createMouseTrackers(svg, {marginLeft, marginRight, marginTop, marginBottom, width, height} = {}) {
+    let mouseG = svg.append("g").attr("class", "mouse").style("display", "none")
+
+    mouseG.append('line').attr("class", "horizontal-line")
+        .attr("x1", marginLeft)
+        .attr("y1", 0)
+        .attr("x2", width - marginLeft)
+        .attr("y2", 0);
+
+    mouseG.append('line').attr("class", "vertical-line")
+        .attr("x1", 0)
+        .attr("y1", marginTop)
+        .attr("x2", 0)
+        .attr("y2", height - marginTop);
+
+    let yAxisHighlightContainer = mouseG.append("g")
+        .attr("id", "yaxis-highlight-container")
+        .attr("transform", `translate(8,0)`);
+    yAxisHighlightContainer.append('rect')
+        .attr("transform", `translate(0,-3)`)
+        .attr("id", "yaxis-highlight-rect")
+        .attr("fill", "#101018")
+        .attr("height", 9)
+        .attr("width", 29);
+    yAxisHighlightContainer.append('text')
+        .attr("transform", `translate(0,5)`)
+        .attr("id", "yaxis-highlight")
+        .attr("class", "axis-highlight");
+
+    mouseG.append('text').attr("id", "yaxis-highlight")
+        .attr("class", "axis-highlight")
+        .attr("x", 11)
+        .attr("y", 0);
+
+    let y2AxisHighlightContainer = mouseG.append("g")
+        .attr("id", "y2axis-highlight-container")
+        .attr("transform", `translate(${width - marginRight + 9},0)`);
+    y2AxisHighlightContainer.append('rect')
+        .attr("transform", `translate(0,-3)`)
+        .attr("id", "y2axis-highlight-rect")
+        .attr("fill", "#101018")
+        .attr("height", 9)
+        .attr("width", 26);
+    y2AxisHighlightContainer.append('text')
+        .attr("transform", `translate(0,5)`)
+        .attr("id", "y2axis-highlight")
+        .attr("class", "axis-highlight");
+}
+
+function trackMouse(event, d) {
+    d3.select(".mouse").style("display", "block")
+    d3.select(".horizontal-line")
+        .attr("y1", event.offsetY)
+        .attr("y2", event.offsetY);
+    d3.select(".vertical-line")
+        .attr("x1", event.offsetX)
+        .attr("x2", event.offsetX);
+    d3.select("#yaxis-highlight-rect").attr("y", event.offsetY)
+    d3.select("#yaxis-highlight").attr("y", event.offsetY).text(y3Scale.invert(parseFloat(event.offsetY)).toFixed(3));
+    d3.select("#y2axis-highlight-rect").attr("y", event.offsetY)
+    d3.select("#y2axis-highlight").attr("y", event.offsetY).text(y2Scale.invert(parseFloat(event.offsetY)).toFixed(1));
 }
